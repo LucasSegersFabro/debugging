@@ -1,5 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import * as jsonwebtoken from 'jsonwebtoken';
+import * as jwkToPem from 'jwk-to-pem';
+import { JwtPart, readJwtPart } from '../utils';
 
 export interface Jwk {
   alg: string;
@@ -52,7 +54,20 @@ export class IdpProvider {
   }
 
   public validateJwt(jwt: string) {
-    jsonwebtoken.verify(jwt, this.jwks.keys.toString());
+    let key = this.signing?.public_cert;
+    if (!key) {
+      const usedKey = readJwtPart(jwt, JwtPart.HEADER) as { kid?: string };
+      if (!usedKey.kid) {
+        throw new UnauthorizedException();
+      }
+
+      const jwk = this.jwks.keys[0];
+
+      // @ts-expect-error: jwk
+      key = jwkToPem(jwk);
+    }
+
+    jsonwebtoken.verify(jwt, key, { ignoreExpiration: true });
   }
 
   public signJwt(body: object) {

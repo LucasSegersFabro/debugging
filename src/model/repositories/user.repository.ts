@@ -18,4 +18,8 @@ export class UserRepository {
   public findByMailAndPassword(email: string, password: string) {
     return this.store.find((s) => s.email === email && s.password === password);
   }
+
+  public findUserById(id: number) {
+    return this.store.find((s) => s.id === id);
+  }
 }
