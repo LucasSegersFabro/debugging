@@ -22,4 +22,8 @@ export class UserRepository {
   public findUserById(id: number) {
     return this.store.find((s) => s.id === id);
   }
+
+  public addUser(usr: User) {
+    this.store.push(usr);
+  }
 }

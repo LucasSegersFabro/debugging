@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IdpProvider } from '../idp.provider';
 import { googleSocial, localProvider, microsoftSocial } from './idp.stubs';
+import { User } from '../user';
 
 type UserProvider = {
   user_id: number;
@@ -40,5 +41,17 @@ export class IdpProviderRepository {
     return this.userProviderStore.find(
       (s) => s.sub === providerIdentifier && s.provider_id === providerId,
     );
+  }
+
+  public linkUserToProvider(
+    user: User,
+    providerSub: string,
+    providerId: number,
+  ) {
+    this.userProviderStore.push({
+      provider_id: providerId,
+      sub: providerSub,
+      user_id: user.id,
+    });
   }
 }
