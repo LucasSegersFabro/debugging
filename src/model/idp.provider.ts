@@ -1,3 +1,4 @@
+import { UnauthorizedException } from '@nestjs/common';
 import * as jsonwebtoken from 'jsonwebtoken';
 
 export interface Jwk {
@@ -23,6 +24,12 @@ type ProviderAttrs = {
   client_id: string;
   issuer: string;
   client_secret: string;
+  signing?: {
+    private_cert: string;
+    public_cert: string;
+    keyId: string;
+    configuredExpDays: number;
+  };
 };
 
 export class IdpProvider {
@@ -33,6 +40,12 @@ export class IdpProvider {
   client_id: string;
   issuer: string;
   client_secret: string;
+  signing?: {
+    configuredExpDays: number;
+    keyId: string;
+    private_cert: string;
+    public_cert: string;
+  };
 
   constructor(obj: ProviderAttrs) {
     Object.entries(obj).forEach(([k, v]) => (this[k] = v));
@@ -40,5 +53,23 @@ export class IdpProvider {
 
   public validateJwt(jwt: string) {
     jsonwebtoken.verify(jwt, this.jwks.keys.toString());
+  }
+
+  public signJwt(body: object) {
+    if (!this.signing) {
+      // cant sign because provider isnt meant to generate jwts
+      throw new UnauthorizedException();
+    }
+
+    const withExp = {
+      ...body,
+      exp:
+        Math.floor(Date.now() / 1000) +
+        60 * 60 * 24 * this.signing.configuredExpDays,
+    };
+    return jsonwebtoken.sign(withExp, this.signing.private_cert, {
+      algorithm: 'RS256',
+      keyid: this.signing.keyId,
+    });
   }
 }

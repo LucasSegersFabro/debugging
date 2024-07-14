@@ -1,8 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
+import {
+  TEST_USER_EMAIL,
+  TEST_USER_PASSWORD,
+} from './model/repositories/user.repository';
+import { AppModule } from './app.module';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -10,13 +14,13 @@ describe('AppController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
+      imports: [AppModule],
     }).compile();
 
     appController = module.get<AppController>(AppController);
 
-    app = module.createNestApplication();
+    app = await module.createNestApplication();
+    await app.init();
   });
 
   describe('root', () => {
@@ -25,13 +29,22 @@ describe('AppController', () => {
     });
   });
 
-  it('should only accept valid tokens', () => {
-    const someJwt =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjIwMTYyMzkwMjJ9.BWcm3vSRd3fcwFC5ZShh4jRhlRJkU_8sYTXlG3IkyXY';
+  it.only('logins successfuly and calls a protected route', async () => {
+    console.log('AAA');
+
+    const login = await request(app.getHttpServer())
+      .post('/login')
+      .send({
+        user: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD,
+      })
+      .expect(200);
+
+    const jwt = login.body.access_token;
 
     return request(app.getHttpServer())
-      .set({ Authorization: `Bearer ${someJwt}` })
       .get('/user')
+      .set({ Authorization: `Bearer ${jwt}` })
       .expect(200);
   });
 });
