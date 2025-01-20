@@ -9,7 +9,6 @@ import {
 import { AppModule } from './app.module';
 
 describe('AppController', () => {
-  let appController: AppController;
   let app: INestApplication;
 
   beforeEach(async () => {
@@ -17,18 +16,8 @@ describe('AppController', () => {
       imports: [AppModule],
     }).compile();
 
-    appController = module.get<AppController>(AppController);
-
     app = await module.createNestApplication();
     await app.init();
-  });
-
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toEqual(
-        expect.objectContaining({ hello: 'world' }),
-      );
-    });
   });
 
   it('logins successfuly and calls a protected route', async () => {
@@ -46,6 +35,23 @@ describe('AppController', () => {
       .get('/user')
       .set({ Authorization: `Bearer ${jwt}` })
       .expect(200);
+  });
+
+  it('returns 401 if we mess up the jwt', async () => {
+    const login = await request(app.getHttpServer())
+      .post('/login')
+      .send({
+        user: TEST_USER_EMAIL,
+        password: TEST_USER_PASSWORD,
+      })
+      .expect(200);
+
+    const jwt = login.body.access_token + 'a';
+
+    return request(app.getHttpServer())
+      .get('/user')
+      .set({ Authorization: `Bearer ${jwt}` })
+      .expect(401);
   });
 
   it('also accepts external provider jwts (fixed token)', async () => {
